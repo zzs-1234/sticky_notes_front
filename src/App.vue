@@ -110,7 +110,7 @@ export default defineComponent({
       this.todoNotes.push(newNote);
     },
     editNote(note: Note) {
-      this.editingNote = { ...note };
+      this.editingNote = note;
       this.dialogVisible = true;
     },
     saveNote() {
@@ -118,6 +118,7 @@ export default defineComponent({
       const index = noteList.findIndex(n => n.id === this.editingNote.id);
       if (index !== -1) {
         noteList[index].content = this.editingNote.content;
+        console.log("ssss" + noteList[index].content)
       }
       this.dialogVisible = false;
     },
