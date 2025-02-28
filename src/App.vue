@@ -7,57 +7,34 @@
       <el-main>
         <el-row :gutter="20">
           <el-col :span="12">
-            <div class="board-container">
-              <div class="board-title">待办事项</div>
-              <div class="whiteboard">
-                <VueDraggableNext 
-                  v-model="todoNotes" 
-                  :group="{ name: 'notes', pull: true, put: true }"
-                  @change="handleChange"
-                  item-key="id"
-                  class="notes-container"
-                >
-                  <div v-for="note in todoNotes" :key="note.id" class="note" @click="editNote(note)">
-                    <div class="note-content" :style="{ backgroundColor: note.color }">
-                      {{ note.content || '点击编辑' }}
-                      <div class="note-actions">
-                        <el-button size="small" type="success" @click.stop="moveToDone(note)">完成</el-button>
-                        <el-button size="small" type="danger" @click.stop="deleteNote(note, 'todo')">删除</el-button>
-                      </div>
-                    </div>
-                  </div>
-                </VueDraggableNext>
-              </div>
-            </div>
+            <Whiteboard
+              title="待办事项"
+              v-model:notes="todoNotes"
+              placeholder="点击编辑"
+              action-type="success"
+              action-text="完成"
+              @edit="editNote"
+              @action="moveToDone"
+              @delete="(note) => deleteNote(note, 'todo')"
+              @change="handleChange"
+            />
           </el-col>
           <el-col :span="12">
-            <div class="board-container">
-              <div class="board-title">已完成</div>
-              <div class="whiteboard">
-                <VueDraggableNext 
-                  v-model="doneNotes" 
-                  :group="{ name: 'notes', pull: true, put: true }"
-                  @change="handleChange"
-                  item-key="id"
-                  class="notes-container"
-                >
-                  <div v-for="note in doneNotes" :key="note.id" class="note" @click="editNote(note)">
-                    <div class="note-content" :style="{ backgroundColor: note.color }">
-                      {{ note.content || '已完成' }}
-                      <div class="note-actions">
-                        <el-button size="small" type="info" @click.stop="moveToTodo(note)">恢复</el-button>
-                        <el-button size="small" type="danger" @click.stop="deleteNote(note, 'done')">删除</el-button>
-                      </div>
-                    </div>
-                  </div>
-                </VueDraggableNext>
-              </div>
-            </div>
+            <Whiteboard
+              title="已完成"
+              v-model:notes="doneNotes"
+              placeholder="已完成"
+              action-type="info"
+              action-text="恢复"
+              @edit="editNote"
+              @action="moveToTodo"
+              @delete="(note) => deleteNote(note, 'done')"
+              @change="handleChange"
+            />
           </el-col>
         </el-row>
       </el-main>
 
-      <!-- 编辑对话框 -->
       <el-dialog v-model="dialogVisible" title="编辑便签" width="30%">
         <el-input
           type="textarea"
@@ -78,7 +55,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { VueDraggableNext } from 'vue-draggable-next';
+import Whiteboard from './components/Whiteboard.vue';
 
 interface Note {
   id: number;
@@ -87,8 +64,9 @@ interface Note {
 }
 
 export default defineComponent({
+  name: 'App',
   components: {
-    VueDraggableNext
+    Whiteboard
   },
   data() {
     return {
@@ -118,7 +96,6 @@ export default defineComponent({
       const index = noteList.findIndex(n => n.id === this.editingNote.id);
       if (index !== -1) {
         noteList[index].content = this.editingNote.content;
-        console.log("ssss" + noteList[index].content)
       }
       this.dialogVisible = false;
     },
@@ -171,117 +148,6 @@ export default defineComponent({
   pointer-events: none;
 }
 
-.board-container {
-  padding: 20px;
-  height: calc(100vh - 120px); /* 减去header和padding的高度 */
-}
-
-.board-title {
-  font-size: 22px; /* 稍微增大标题字号 */
-  font-weight: bold;
-  margin-bottom: 20px; /* 增加底部间距 */
-  color: #333;
-  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.8); /* 添加文字阴影 */
-}
-
-.whiteboard {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e4e7ed;
-  border-radius: 12px; /* 增加圆角 */
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.08),
-    inset 0 0 20px rgba(0, 0, 0, 0.02); /* 添加内阴影效果 */
-  height: calc(100% - 40px);
-  padding: 25px; /* 增加内边距 */
-  position: relative;
-  overflow-y: auto;
-  transition: box-shadow 0.3s ease; /* 添加过渡效果 */
-}
-
-.whiteboard:hover {
-  box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    inset 0 0 20px rgba(0, 0, 0, 0.02); /* 悬停时加深阴影 */
-}
-
-.notes-container {
-  min-height: 100%;
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 每行三个便签 */
-  gap: 15px;
-  align-items: start;
-}
-
-.note {
-  width: 100%; /* 改为100%以适应网格布局 */
-  margin: 0; /* 移除margin，使用grid的gap */
-  cursor: move;
-  display: inline-block;
-  position: relative;
-}
-
-.note-content {
-  min-height: 200px;
-  padding: 15px;
-  border-radius: 2px;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-  position: relative;
-  word-wrap: break-word;
-  transition: transform 0.2s;
-  transform: rotate(-1deg);
-  margin: 5px; /* 添加一些间距 */
-}
-
-/* 自定义滚动条样式 */
-.whiteboard::-webkit-scrollbar {
-  width: 10px;
-}
-
-.whiteboard::-webkit-scrollbar-track {
-  background: #f8f9fa;
-  border-radius: 6px;
-}
-
-.whiteboard::-webkit-scrollbar-thumb {
-  background: #dcdfe6;
-  border-radius: 6px;
-  border: 2px solid #f8f9fa;
-}
-
-.whiteboard::-webkit-scrollbar-thumb:hover {
-  background: #c0c4cc;
-}
-
-/* 其他样式保持不变 */
-.note:nth-child(even) .note-content {
-  transform: rotate(1deg);
-}
-
-.note-content:hover {
-  transform: scale(1.05) rotate(0);
-  z-index: 2;
-}
-
-.note-actions {
-  position: absolute;
-  bottom: 10px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 0 10px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.note-content:hover .note-actions {
-  opacity: 1;
-}
-
 .el-header {
   padding: 20px;
   padding-bottom: 0px;
@@ -289,7 +155,7 @@ export default defineComponent({
   background: transparent;
   position: relative;
   z-index: 1;
-  height: auto !important; /* 覆盖 Element Plus 的默认高度 */
+  height: auto !important;
 }
 
 .el-main {
@@ -298,25 +164,8 @@ export default defineComponent({
   background: transparent;
   position: relative;
   z-index: 1;
-  height: calc(100vh - 100px); /* 设置主容器高度 */
-  overflow: hidden; /* 防止出现双滚动条 */
-}
-
-/* 磁铁效果 */
-.whiteboard::after {
-  content: '';
-  position: absolute;
-  top: 15px; /* 调整位置 */
-  left: 15px;
-  width: 10px;
-  height: 10px;
-  background: #666;
-  border-radius: 50%;
-  box-shadow: 
-    0 0 3px rgba(0,0,0,0.4),
-    calc(100% - 30px) 0 0 #666,
-    0 calc(100% - 30px) 0 #666,
-    calc(100% - 30px) calc(100% - 30px) 0 #666;
+  height: calc(100vh - 100px);
+  overflow: hidden;
 }
 
 /* 调整按钮样式以配合背景 */
@@ -330,5 +179,28 @@ export default defineComponent({
 .el-button--primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 对话框样式优化 */
+:deep(.el-dialog) {
+  border-radius: 8px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+:deep(.el-textarea__inner) {
+  min-height: 150px !important;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  resize: none;
+}
+
+:deep(.el-textarea__inner:focus) {
+  background-color: #fff;
 }
 </style> 
