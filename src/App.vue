@@ -2,14 +2,41 @@
   <div class="app-container">
     <el-container>
       <el-header>
-        <el-button type="primary" @click="addNote">添加便签</el-button>
+        <div class="header-content">
+          <el-date-picker
+            v-model="selectedDate"
+            type="date"
+            placeholder="选择日期"
+            format="YYYY年MM月DD日"
+            value-format="YYYY-MM-DD"
+            :clearable="true"
+            class="date-picker"
+            @change="handleDateChange"
+          />
+          <el-select v-model="currentCategory" placeholder="选择分类" class="category-select">
+            <el-option label="全部" :value="0" />
+            <el-option
+              v-for="category in categories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
+            >
+              <div class="category-option">
+                <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+                {{ category.name }}
+              </div>
+            </el-option>
+          </el-select>
+          <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+        </div>
       </el-header>
       <el-main>
         <el-row :gutter="20">
           <el-col :span="12">
             <Whiteboard
               title="待办事项"
-              v-model:notes="todoNotes"
+              v-model:notes="filteredTodoNotes"
+              :categories="categories"
               placeholder="点击编辑"
               action-type="success"
               action-text="完成"
@@ -22,7 +49,8 @@
           <el-col :span="12">
             <Whiteboard
               title="已完成"
-              v-model:notes="doneNotes"
+              v-model:notes="filteredDoneNotes"
+              :categories="categories"
               placeholder="已完成"
               action-type="info"
               action-text="恢复"
@@ -35,13 +63,68 @@
         </el-row>
       </el-main>
 
+      <!-- 添加便签对话框 -->
+      <el-dialog v-model="addDialogVisible" title="添加便签" width="30%">
+        <el-form :model="newNote">
+          <el-form-item label="分类">
+            <el-select v-model="newNote.categoryId" placeholder="选择分类">
+              <el-option
+                v-for="category in categories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
+              >
+                <div class="category-option">
+                  <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+                  {{ category.name }}
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="内容">
+            <el-input
+              type="textarea"
+              v-model="newNote.content"
+              :rows="6"
+              placeholder="请输入内容..."
+            ></el-input>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="addNote">确定</el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 编辑便签对话框 -->
       <el-dialog v-model="dialogVisible" title="编辑便签" width="30%">
-        <el-input
-          type="textarea"
-          v-model="editingNote.content"
-          :rows="6"
-          placeholder="请输入内容..."
-        ></el-input>
+        <el-form :model="editingNote">
+          <el-form-item label="分类">
+            <el-select v-model="editingNote.categoryId" placeholder="选择分类">
+              <el-option
+                v-for="category in categories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
+              >
+                <div class="category-option">
+                  <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+                  {{ category.name }}
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="内容">
+            <el-input
+              type="textarea"
+              v-model="editingNote.content"
+              :rows="6"
+              placeholder="请输入内容..."
+            ></el-input>
+          </el-form-item>
+        </el-form>
         <template #footer>
           <span class="dialog-footer">
             <el-button @click="dialogVisible = false">取消</el-button>
@@ -56,12 +139,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import Whiteboard from './components/Whiteboard.vue';
-
-interface Note {
-  id: number;
-  content: string;
-  color: string;
-}
+import { Note, Category } from './types';
 
 export default defineComponent({
   name: 'App',
@@ -72,20 +150,101 @@ export default defineComponent({
     return {
       todoNotes: [] as Note[],
       doneNotes: [] as Note[],
-      colors: ['#feff9c', '#7afcff', '#ff7eb9', '#fff740', '#98ff98'],
+      categories: [
+        { id: 1, name: '工作', color: this.getRandomColor() },
+        { id: 2, name: '学习', color: this.getRandomColor() },
+        { id: 3, name: '生活', color: this.getRandomColor() },
+        { id: 4, name: '娱乐', color: this.getRandomColor() },
+        { id: 5, name: '健康', color: this.getRandomColor() },
+        { id: 6, name: '其他', color: this.getRandomColor() }
+      ] as Category[],
+      currentCategory: 0,
+      selectedDate: '',
       dialogVisible: false,
+      addDialogVisible: false,
       editingNote: {} as Note,
-      editingNoteIndex: -1
+      newNote: {
+        content: '',
+        categoryId: 1
+      }
     };
   },
+  computed: {
+    filteredTodoNotes: {
+      get(): Note[] {
+        let notes = this.todoNotes;
+        
+        if (this.currentCategory !== 0) {
+          notes = notes.filter(note => note.categoryId === this.currentCategory);
+        }
+        
+        if (this.selectedDate) {
+          notes = notes.filter(note => note.createTime === this.selectedDate);
+        }
+        
+        return notes;
+      },
+      set(value: Note[]) {
+        if (this.currentCategory === 0 && !this.selectedDate) {
+          this.todoNotes = value;
+        }
+      }
+    },
+    filteredDoneNotes: {
+      get(): Note[] {
+        let notes = this.doneNotes;
+        
+        if (this.currentCategory !== 0) {
+          notes = notes.filter(note => note.categoryId === this.currentCategory);
+        }
+        
+        if (this.selectedDate) {
+          notes = notes.filter(note => note.createTime === this.selectedDate);
+        }
+        
+        return notes;
+      },
+      set(value: Note[]) {
+        if (this.currentCategory === 0 && !this.selectedDate) {
+          this.doneNotes = value;
+        }
+      }
+    }
+  },
   methods: {
+    getRandomColor(): string {
+      const hue = Math.random() * 360;
+      const saturation = 60 + Math.random() * 20;
+      const lightness = 80 + Math.random() * 10;
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    },
+    showAddNoteDialog() {
+      this.newNote = {
+        content: '',
+        categoryId: 1
+      };
+      this.addDialogVisible = true;
+    },
     addNote() {
+      const category = this.categories.find(c => c.id === this.newNote.categoryId);
+      if (!category) return;
+      
+      const today = new Date();
+      const createTime = `${today.getFullYear()}年${String(today.getMonth() + 1).padStart(2, '0')}月${String(today.getDate()).padStart(2, '0')}日`;
       const newNote: Note = {
         id: Date.now(),
-        content: '',
-        color: this.colors[Math.floor(Math.random() * this.colors.length)]
+        content: this.newNote.content,
+        categoryId: this.newNote.categoryId,
+        color: this.getRandomColor(),
+        createTime: createTime
       };
-      this.todoNotes.push(newNote);
+
+      this.todoNotes = [...this.todoNotes, newNote];
+      this.addDialogVisible = false;
+      this.newNote = {
+        content: '',
+        categoryId: 1
+      };
     },
     editNote(note: Note) {
       this.editingNote = note;
@@ -95,17 +254,27 @@ export default defineComponent({
       const noteList = this.todoNotes.includes(this.editingNote) ? this.todoNotes : this.doneNotes;
       const index = noteList.findIndex(n => n.id === this.editingNote.id);
       if (index !== -1) {
-        noteList[index].content = this.editingNote.content;
+        const category = this.categories.find(c => c.id === this.editingNote.categoryId);
+        noteList[index] = {
+          ...this.editingNote,
+          color: category?.color || this.categories[0].color
+        };
       }
       this.dialogVisible = false;
     },
     moveToDone(note: Note) {
-      this.todoNotes = this.todoNotes.filter(n => n.id !== note.id);
-      this.doneNotes.push(note);
+      const index = this.todoNotes.findIndex(n => n.id === note.id);
+      if (index !== -1) {
+        this.todoNotes.splice(index, 1);
+        this.doneNotes.push({ ...note });
+      }
     },
     moveToTodo(note: Note) {
-      this.doneNotes = this.doneNotes.filter(n => n.id !== note.id);
-      this.todoNotes.push(note);
+      const index = this.doneNotes.findIndex(n => n.id === note.id);
+      if (index !== -1) {
+        this.doneNotes.splice(index, 1);
+        this.todoNotes.push({ ...note });
+      }
     },
     deleteNote(note: Note, section: string) {
       if (section === 'todo') {
@@ -116,13 +285,24 @@ export default defineComponent({
     },
     handleChange(evt: any) {
       if (evt.added) {
-        // 处理添加到新列表的情况
-        console.log('Item was added to list', evt.added.element);
+        const note = evt.added.element;
+        if (evt.added.newIndex !== undefined) {
+          if (this.todoNotes.includes(note)) {
+            this.moveToTodo(note);
+          } else if (this.doneNotes.includes(note)) {
+            this.moveToDone(note);
+          }
+        }
       }
-      if (evt.removed) {
-        // 处理从原列表移除的情况
-        console.log('Item was removed from list', evt.removed.element);
+    },
+    handleDateChange(date: string) {
+      if (!date) {
+        this.selectedDate = '';
+        return;
       }
+      
+      const dateObj = new Date(date);
+      this.selectedDate = `${dateObj.getFullYear()}年${String(dateObj.getMonth() + 1).padStart(2, '0')}月${String(dateObj.getDate()).padStart(2, '0')}日`;
     }
   }
 });
@@ -168,7 +348,6 @@ export default defineComponent({
   overflow: hidden;
 }
 
-/* 调整按钮样式以配合背景 */
 .el-button--primary {
   background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
   border: none;
@@ -181,7 +360,6 @@ export default defineComponent({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 对话框样式优化 */
 :deep(.el-dialog) {
   border-radius: 8px;
 }
@@ -202,5 +380,32 @@ export default defineComponent({
 
 :deep(.el-textarea__inner:focus) {
   background-color: #fff;
+}
+
+.header-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.date-picker {
+  width: 200px;
+}
+
+.category-select {
+  width: 200px;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
 }
 </style> 

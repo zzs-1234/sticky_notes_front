@@ -3,19 +3,20 @@
     <div class="board-title">{{ title }}</div>
     <div class="whiteboard">
       <VueDraggableNext 
-        v-model="notes" 
+        v-model="noteList"
         :group="{ name: 'notes', pull: true, put: true }"
-        @change="$emit('change', $event)"
+        @change="handleChange"
         item-key="id"
         class="notes-container"
       >
         <NoteItem
-          v-for="note in notes"
+          v-for="note in noteList"
           :key="note.id"
           :note="note"
           :placeholder="placeholder"
           :action-type="actionType"
           :action-text="actionText"
+          :categories="categories"
           @edit="$emit('edit', note)"
           @action="$emit('action', note)"
           @delete="$emit('delete', note)"
@@ -26,21 +27,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
+import { defineComponent, PropType, computed } from 'vue';
 import { VueDraggableNext } from 'vue-draggable-next';
 import NoteItem from './NoteItem.vue';
-
-interface Note {
-  id: number;
-  content: string;
-  color: string;
-}
+import { Note, Category } from '../types';
 
 export default defineComponent({
   name: 'Whiteboard',
   components: {
     VueDraggableNext,
     NoteItem
+  },
+  updated() {
+    console.log(this.notes)
   },
   props: {
     title: {
@@ -62,9 +61,28 @@ export default defineComponent({
     actionText: {
       type: String,
       default: '完成'
+    },
+    categories: {
+      type: Array as PropType<Category[]>,
+      required: true
     }
   },
-  emits: ['update:notes', 'edit', 'action', 'delete', 'change']
+  emits: ['update:notes', 'edit', 'action', 'delete', 'change'],
+  computed: {
+    noteList: {
+      get(): Note[] {
+        return this.notes;
+      },
+      set(value: Note[]) {
+        this.$emit('update:notes', value);
+      }
+    }
+  },
+  methods: {
+    handleChange(evt: any) {
+      this.$emit('change', evt);
+    }
+  }
 });
 </script>
 

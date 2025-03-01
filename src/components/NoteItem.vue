@@ -1,7 +1,13 @@
 <template>
   <div class="note" @click="$emit('edit', note)">
     <div class="note-content" :style="{ backgroundColor: note.color }">
-      {{ note.content || placeholder }}
+      <div class="note-tags">
+        <div class="note-date tag">{{ note.createTime }}</div>
+        <div class="note-category tag" :style="{ backgroundColor: getCategoryColor() }">
+          {{ getCategoryName() }}
+        </div>
+      </div>
+      <div class="note-text">{{ note.content || placeholder }}</div>
       <div class="note-actions">
         <el-button 
           size="small" 
@@ -29,6 +35,8 @@ interface Note {
   id: number;
   content: string;
   color: string;
+  categoryId: number;
+  createTime: string;
 }
 
 export default defineComponent({
@@ -49,9 +57,23 @@ export default defineComponent({
     actionText: {
       type: String,
       default: '完成'
+    },
+    categories: {
+      type: Array as PropType<{ id: number; name: string; color: string }[]>,
+      required: true
     }
   },
-  emits: ['edit', 'action', 'delete']
+  emits: ['edit', 'action', 'delete'],
+  methods: {
+    getCategoryColor() {
+      const category = this.categories.find(c => c.id === this.note.categoryId);
+      return category?.color || '#dcdcdc';
+    },
+    getCategoryName() {
+      const category = this.categories.find(c => c.id === this.note.categoryId);
+      return category?.name || '未分类';
+    }
+  }
 });
 </script>
 
@@ -76,7 +98,6 @@ export default defineComponent({
   margin: 5px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
 .note:nth-child(even) .note-content {
@@ -103,14 +124,7 @@ export default defineComponent({
 }
 
 .note-text::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  left: 0;
-  height: 20px;
-  background: linear-gradient(transparent, var(--note-color, #fff));
-  pointer-events: none;
+  display: none;
 }
 
 .note-actions {
@@ -123,9 +137,34 @@ export default defineComponent({
   padding: 0 10px;
   opacity: 0;
   transition: opacity 0.2s;
+  background: transparent;
 }
 
 .note-content:hover .note-actions {
   opacity: 1;
+}
+
+.note-tags {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: flex;
+  gap: 5px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.note-category {
+  color: #fff;
+}
+
+.note-date {
+  background-color: #f2f2f2;
+  color: #666;
 }
 </style> 
