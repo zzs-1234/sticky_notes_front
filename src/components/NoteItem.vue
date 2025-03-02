@@ -167,4 +167,9 @@ export default defineComponent({
   background-color: #f2f2f2;
   color: #666;
 }
+@media screen and (max-width: 1000px) {
+  .note-content {
+    min-height: 250px;
+  }
+}
 </style> 

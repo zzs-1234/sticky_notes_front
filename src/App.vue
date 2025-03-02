@@ -3,6 +3,11 @@
     <el-container>
       <el-header>
         <div class="header-content">
+          <div class="button-group">
+            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+            <el-button type="primary" @click="showLoginDialog">登录</el-button>
+            <el-button type="success" @click="showRegisterDialog">注册</el-button>
+          </div>
           <el-date-picker
             v-model="selectedDate"
             type="date"
@@ -11,7 +16,6 @@
             value-format="YYYY-MM-DD"
             :clearable="true"
             class="date-picker"
-            @change="handleDateChange"
           />
           <el-select v-model="currentCategory" placeholder="选择分类" class="category-select">
             <el-option label="全部" :value="0" />
@@ -27,11 +31,6 @@
               </div>
             </el-option>
           </el-select>
-          <div class="button-group">
-            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
-            <el-button type="primary" @click="showLoginDialog">登录</el-button>
-            <el-button type="success" @click="showRegisterDialog">注册</el-button>
-          </div>
         </div>
       </el-header>
 
@@ -39,25 +38,23 @@
         <div class="boards-container">
           <Whiteboard
             title="待办事项"
-            v-model:notes="todoNotes"
+            v-model:notes="filteredTodoNotes"
             :categories="categories"
             action-text="完成"
             action-type="success"
             @edit="editNote"
             @action="moveToDone"
             @delete="deleteNote"
-            @change="handleTodoChange"
           />
           <Whiteboard
             title="已完成"
-            v-model:notes="doneNotes"
+            v-model:notes="filteredDoneNotes"
             :categories="categories"
             action-text="待办"
             action-type="warning"
             @edit="editNote"
             @action="moveToTodo"
             @delete="deleteNote"
-            @change="handleDoneChange"
           />
         </div>
       </el-main>
@@ -218,7 +215,6 @@ export default defineComponent({
       // 获取所有分类
       const categories = await categoryApi.getAllCategories();
       this.categories = categories;
-
       // 获取待办和已完成便签
       const [todoNotes, doneNotes] = await Promise.all([
         noteApi.getTodoNotes(),
@@ -227,6 +223,8 @@ export default defineComponent({
       
       this.todoNotes = todoNotes.data;
       this.doneNotes = doneNotes.data;
+      console.log(this.todoNotes);
+      console.log(this.doneNotes);
     } catch (error) {
       console.error('初始化数据失败:', error);
     }
@@ -371,6 +369,23 @@ export default defineComponent({
 .app-container {
   height: 100vh;
   background-color: #f0f2f5;
+  min-width: 375px;
+  overflow-x: auto;
+}
+
+.el-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.el-header {
+  padding: 0;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  height: auto !important;
 }
 
 .header-content {
@@ -378,22 +393,35 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   gap: 20px;
-  padding: 10px;
+  padding: 10px 20px;
   flex-wrap: wrap;
+  min-height: 60px;
+}
+
+.el-main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto; /* 允许内容区域滚动 */
+}
+
+.boards-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  min-height: calc(100vh - 180px); /* 减去header和padding的高度 */
+}
+
+.date-picker,
+.category-select {
+  width: 200px;
+  min-width: 150px;
 }
 
 .button-group {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.date-picker {
-  width: 200px;
-}
-
-.category-select {
-  width: 200px;
+  flex-wrap: nowrap; /* 防止按钮换行 */
+  justify-content: center;
 }
 
 .category-option {
@@ -408,27 +436,20 @@ export default defineComponent({
   border-radius: 4px;
 }
 
-.boards-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 默认两列 */
-  gap: 20px;
-  padding: 20px;
-  height: calc(100vh - 120px);
-}
-
-/* 在 840px 以下变为单列 */
-@media (max-width: 840px) {
+/* 在 1000px 以下变为单列 */
+@media (max-width: 1000px) {
   .boards-container {
     grid-template-columns: 1fr;
-    height: auto;
   }
 }
 
-/* 在更小的屏幕上调整其他元素 */
+/* 小屏幕适配 */
 @media (max-width: 480px) {
   .header-content {
     flex-direction: column;
     align-items: stretch;
+    padding: 10px;
+    gap: 10px;
   }
 
   .date-picker,
@@ -438,10 +459,18 @@ export default defineComponent({
 
   .button-group {
     justify-content: center;
+    width: auto;
+    margin: 0 auto;
+    padding: 5px 0;
   }
 
   .el-button {
-    width: 100%;
+    padding: 8px 15px; /* 可选：调整按钮大小 */
+    font-size: 14px; /* 可选：调整字体大小 */
+  }
+
+  .el-main {
+    padding: 10px;
   }
 }
 </style> 

@@ -36,7 +36,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, watch } from 'vue';
-import { userApi } from '../api'; // 假设您有一个 userApi 用于处理用户相关的 API
+// import { userApi } from '../api'; // 假设您有一个 userApi 用于处理用户相关的 API
 import type { FormInstance } from 'element-plus';
 import { ElMessage } from 'element-plus';
 
@@ -95,7 +95,7 @@ export default defineComponent({
       await formRef.value.validate(async (valid, fields) => {
         if (valid) {
           try {
-            await userApi.login(form.value);
+            // await userApi.login(form.value);
             ElMessage.success('登录成功');
             emit('login-success');
             emit('update:visible', false);

@@ -42,7 +42,6 @@
 
 <script lang="ts">
 import { defineComponent, ref, watch } from 'vue';
-import { userApi } from '../api';
 import type { FormInstance } from 'element-plus';
 import { ElMessage } from 'element-plus';
 
@@ -114,7 +113,7 @@ export default defineComponent({
       await formRef.value.validate(async (valid, fields) => {
         if (valid) {
           try {
-            await userApi.register(form.value);
+            // await userApi.register(form.value);
             ElMessage.success('注册成功');
             emit('register-success');
             emit('update:visible', false);
