@@ -1,5 +1,5 @@
 import request from './request';
-import type { Note, CreateNoteDto, UpdateNoteDto } from './types';
+import type { Note, CreateNoteDto, UpdateNoteDto } from '../types';
 
 export const noteApi = {
     // 获取所有便签

@@ -27,125 +27,131 @@
               </div>
             </el-option>
           </el-select>
-          <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+          <div class="button-group">
+            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+            <el-button type="primary" @click="showLoginDialog">登录</el-button>
+            <el-button type="success" @click="showRegisterDialog">注册</el-button>
+          </div>
         </div>
       </el-header>
+
       <el-main>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <Whiteboard
-              title="待办事项"
-              v-model:notes="filteredTodoNotes"
-              :categories="categories"
-              placeholder="点击编辑"
-              action-type="success"
-              action-text="完成"
-              @edit="editNote"
-              @action="moveToDone"
-              @delete="(note) => deleteNote(note, 'todo')"
-              @change="handleChange"
-            />
-          </el-col>
-          <el-col :span="12">
-            <Whiteboard
-              title="已完成"
-              v-model:notes="filteredDoneNotes"
-              :categories="categories"
-              placeholder="已完成"
-              action-type="info"
-              action-text="恢复"
-              @edit="editNote"
-              @action="moveToTodo"
-              @delete="(note) => deleteNote(note, 'done')"
-              @change="handleChange"
-            />
-          </el-col>
-        </el-row>
+        <div class="boards-container">
+          <Whiteboard
+            title="待办事项"
+            v-model:notes="todoNotes"
+            :categories="categories"
+            action-text="完成"
+            action-type="success"
+            @edit="editNote"
+            @action="moveToDone"
+            @delete="deleteNote"
+            @change="handleTodoChange"
+          />
+          <Whiteboard
+            title="已完成"
+            v-model:notes="doneNotes"
+            :categories="categories"
+            action-text="待办"
+            action-type="warning"
+            @edit="editNote"
+            @action="moveToTodo"
+            @delete="deleteNote"
+            @change="handleDoneChange"
+          />
+        </div>
       </el-main>
-
-      <!-- 添加便签对话框 -->
-      <el-dialog v-model="addDialogVisible" title="添加便签" width="30%">
-        <el-form :model="newNote">
-          <el-form-item label="分类">
-            <el-select v-model="newNote.categoryId" placeholder="选择分类">
-              <el-option
-                v-for="category in categories"
-                :key="category.id"
-                :label="category.name"
-                :value="category.id"
-              >
-                <div class="category-option">
-                  <span class="category-color" :style="{ backgroundColor: category.color }"></span>
-                  {{ category.name }}
-                </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="内容">
-            <el-input
-              type="textarea"
-              v-model="newNote.content"
-              :rows="6"
-              placeholder="请输入内容..."
-            ></el-input>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="addDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="addNote">确定</el-button>
-          </span>
-        </template>
-      </el-dialog>
-
-      <!-- 编辑便签对话框 -->
-      <el-dialog v-model="dialogVisible" title="编辑便签" width="30%">
-        <el-form :model="editingNote">
-          <el-form-item label="分类">
-            <el-select v-model="editingNote.categoryId" placeholder="选择分类">
-              <el-option
-                v-for="category in categories"
-                :key="category.id"
-                :label="category.name"
-                :value="category.id"
-              >
-                <div class="category-option">
-                  <span class="category-color" :style="{ backgroundColor: category.color }"></span>
-                  {{ category.name }}
-                </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="内容">
-            <el-input
-              type="textarea"
-              v-model="editingNote.content"
-              :rows="6"
-              placeholder="请输入内容..."
-            ></el-input>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveNote">确定</el-button>
-          </span>
-        </template>
-      </el-dialog>
     </el-container>
+
+    <!-- 添加便签对话框 -->
+    <el-dialog v-model="addDialogVisible" title="添加便签" width="30%">
+      <el-form :model="newNote">
+        <el-form-item label="分类">
+          <el-select v-model="newNote.categoryId" placeholder="选择分类">
+            <el-option
+              v-for="category in categories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
+            >
+              <div class="category-option">
+                <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+                {{ category.name }}
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input
+            type="textarea"
+            v-model="newNote.content"
+            :rows="6"
+            placeholder="请输入内容..."
+          ></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="addDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="addNote">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑便签对话框 -->
+    <el-dialog v-model="dialogVisible" title="编辑便签" width="30%">
+      <el-form :model="editingNote">
+        <el-form-item label="分类">
+          <el-select v-model="editingNote.categoryId" placeholder="选择分类">
+            <el-option
+              v-for="category in categories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
+            >
+              <div class="category-option">
+                <span class="category-color" :style="{ backgroundColor: category.color }"></span>
+                {{ category.name }}
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input
+            type="textarea"
+            v-model="editingNote.content"
+            :rows="6"
+            placeholder="请输入内容..."
+          ></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveNote">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <Login v-model:visible="loginDialogVisible" @login-success="handleLoginSuccess" />
+    <Register v-model:visible="registerDialogVisible" @register-success="handleRegisterSuccess" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, ref } from 'vue';
 import Whiteboard from './components/Whiteboard.vue';
 import { noteApi, categoryApi } from './api';
-import type { Note, Category } from './api';
+import type { Note, Category } from './types';
+import Login from './components/Login.vue';
+import Register from './components/Register.vue';
 
 export default defineComponent({
   name: 'App',
   components: {
-    Whiteboard
+    Whiteboard,
+    Login,
+    Register
   },
   data() {
     return {
@@ -160,7 +166,9 @@ export default defineComponent({
       newNote: {
         content: '',
         categoryId: 1
-      }
+      },
+      loginDialogVisible: false,
+      registerDialogVisible: false,
     };
   },
   computed: {
@@ -342,6 +350,18 @@ export default defineComponent({
       
       const dateObj = new Date(date);
       this.selectedDate = `${dateObj.getFullYear()}年${String(dateObj.getMonth() + 1).padStart(2, '0')}月${String(dateObj.getDate()).padStart(2, '0')}日`;
+    },
+    showLoginDialog() {
+      this.loginDialogVisible = true;
+    },
+    showRegisterDialog() {
+      this.registerDialogVisible = true;
+    },
+    handleLoginSuccess() {
+      console.log('登录成功');
+    },
+    handleRegisterSuccess() {
+      console.log('注册成功');
     }
   }
 });
@@ -349,76 +369,8 @@ export default defineComponent({
 
 <style scoped>
 .app-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-  position: relative;
-}
-
-.app-container::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 15% 50%, rgba(255,255,255,0.1) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(255,255,255,0.15) 0%, transparent 30%);
-  pointer-events: none;
-}
-
-.el-header {
-  padding: 20px;
-  padding-bottom: 0px;
-  text-align: center;
-  background: transparent;
-  position: relative;
-  z-index: 1;
-  height: auto !important;
-}
-
-.el-main {
-  padding: 20px;
-  padding-top: 5px;
-  background: transparent;
-  position: relative;
-  z-index: 1;
-  height: calc(100vh - 100px);
-  overflow: hidden;
-}
-
-.el-button--primary {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.el-button--primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-:deep(.el-dialog) {
-  border-radius: 8px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-:deep(.el-textarea__inner) {
-  min-height: 150px !important;
-  font-size: 14px;
-  line-height: 1.5;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  resize: none;
-}
-
-:deep(.el-textarea__inner:focus) {
-  background-color: #fff;
+  height: 100vh;
+  background-color: #f0f2f5;
 }
 
 .header-content {
@@ -426,6 +378,14 @@ export default defineComponent({
   justify-content: center;
   align-items: center;
   gap: 20px;
+  padding: 10px;
+  flex-wrap: wrap;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .date-picker {
@@ -446,5 +406,42 @@ export default defineComponent({
   width: 16px;
   height: 16px;
   border-radius: 4px;
+}
+
+.boards-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 默认两列 */
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 120px);
+}
+
+/* 在 840px 以下变为单列 */
+@media (max-width: 840px) {
+  .boards-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+/* 在更小的屏幕上调整其他元素 */
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-picker,
+  .category-select {
+    width: 100%;
+  }
+
+  .button-group {
+    justify-content: center;
+  }
+
+  .el-button {
+    width: 100%;
+  }
 }
 </style> 

@@ -9,18 +9,18 @@
         item-key="id"
         class="notes-container"
       >
-        <NoteItem
-          v-for="note in noteList"
-          :key="note.id"
-          :note="note"
-          :placeholder="placeholder"
-          :action-type="actionType"
-          :action-text="actionText"
-          :categories="categories"
-          @edit="$emit('edit', note)"
-          @action="$emit('action', note)"
-          @delete="$emit('delete', note)"
-        />
+        <template #item="{ element }">
+          <NoteItem
+            :note="element"
+            :placeholder="placeholder"
+            :action-type="actionType"
+            :action-text="actionText"
+            :categories="categories"
+            @edit="$emit('edit', element)"
+            @action="$emit('action', element)"
+            @delete="$emit('delete', element)"
+          />
+        </template>
       </VueDraggableNext>
     </div>
   </div>
@@ -85,8 +85,9 @@ export default defineComponent({
 
 <style scoped>
 .board-container {
-  padding: 20px;
-  height: calc(100vh - 120px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .board-title {
@@ -105,7 +106,7 @@ export default defineComponent({
     0 4px 12px rgba(0, 0, 0, 0.05),
     0 1px 2px rgba(0, 0, 0, 0.08),
     inset 0 0 20px rgba(0, 0, 0, 0.02);
-  height: calc(100% - 40px);
+  flex: 1;
   padding: 25px;
   position: relative;
   overflow-y: auto;
@@ -120,13 +121,22 @@ export default defineComponent({
 }
 
 .notes-container {
-  min-height: 100%;
-  position: relative;
-  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 15px;
-  align-items: start;
+  min-height: 100%;
+}
+
+/* 在 840px 以下时调整便签布局 */
+@media (max-width: 840px) {
+  .board-container {
+    height: auto;
+    min-height: 400px; /* 确保有最小高度 */
+  }
+
+  .whiteboard {
+    min-height: 350px; /* 确保有最小高度 */
+  }
 }
 
 /* 自定义滚动条样式 */
