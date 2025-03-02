@@ -139,7 +139,8 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import Whiteboard from './components/Whiteboard.vue';
-import { Note, Category } from './types';
+import { noteApi, categoryApi } from './api';
+import type { Note, Category } from './api';
 
 export default defineComponent({
   name: 'App',
@@ -150,14 +151,7 @@ export default defineComponent({
     return {
       todoNotes: [] as Note[],
       doneNotes: [] as Note[],
-      categories: [
-        { id: 1, name: '工作', color: this.getRandomColor() },
-        { id: 2, name: '学习', color: this.getRandomColor() },
-        { id: 3, name: '生活', color: this.getRandomColor() },
-        { id: 4, name: '娱乐', color: this.getRandomColor() },
-        { id: 5, name: '健康', color: this.getRandomColor() },
-        { id: 6, name: '其他', color: this.getRandomColor() }
-      ] as Category[],
+      categories: [] as Category[],
       currentCategory: 0,
       selectedDate: '',
       dialogVisible: false,
@@ -211,12 +205,30 @@ export default defineComponent({
       }
     }
   },
+  async created() {
+    try {
+      // 获取所有分类
+      const categories = await categoryApi.getAllCategories();
+      this.categories = categories;
+
+      // 获取待办和已完成便签
+      const [todoNotes, doneNotes] = await Promise.all([
+        noteApi.getTodoNotes(),
+        noteApi.getDoneNotes()
+      ]);
+      
+      this.todoNotes = todoNotes.data;
+      this.doneNotes = doneNotes.data;
+    } catch (error) {
+      console.error('初始化数据失败:', error);
+    }
+  },
   methods: {
     getRandomColor(): string {
-      const hue = Math.random() * 360;
-      const saturation = 60 + Math.random() * 20;
-      const lightness = 80 + Math.random() * 10;
-      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+      const hue = Math.floor(Math.random() * 360); // 随机色相
+      const saturation = (Math.random() * 20 + 40).toFixed(2); // 饱和度范围 40% - 60%，保留两位小数
+      const lightness = (Math.random() * 30 + 70).toFixed(2); // 亮度范围 70% - 100%，保留两位小数
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`; // 返回 HSL
     },
     showAddNoteDialog() {
       this.newNote = {
@@ -225,62 +237,89 @@ export default defineComponent({
       };
       this.addDialogVisible = true;
     },
-    addNote() {
-      const category = this.categories.find(c => c.id === this.newNote.categoryId);
-      if (!category) return;
-      
-      const today = new Date();
-      const createTime = `${today.getFullYear()}年${String(today.getMonth() + 1).padStart(2, '0')}月${String(today.getDate()).padStart(2, '0')}日`;
-      const newNote: Note = {
-        id: Date.now(),
-        content: this.newNote.content,
-        categoryId: this.newNote.categoryId,
-        color: this.getRandomColor(),
-        createTime: createTime
-      };
+    async addNote() {
+      try {
+        const category = this.categories.find(c => c.id === this.newNote.categoryId);
+        if (!category) return;
 
-      this.todoNotes = [...this.todoNotes, newNote];
-      this.addDialogVisible = false;
-      this.newNote = {
-        content: '',
-        categoryId: 1
-      };
+        const today = new Date();
+        const createTime = `${today.getFullYear()}年${String(today.getMonth() + 1).padStart(2, '0')}月${String(today.getDate()).padStart(2, '0')}日`;
+        let temp = {
+          content: this.newNote.content,
+          categoryId: this.newNote.categoryId,
+          color: this.getRandomColor(),
+          isDone: false,
+          createTime
+        }
+        const newNote = await noteApi.createNote(temp);
+        this.todoNotes.push(newNote.data);
+        this.addDialogVisible = false;
+        this.newNote = {
+          content: '',
+          categoryId: 1
+        };
+      } catch (error) {
+        console.error('添加便签失败:', error);
+      }
     },
     editNote(note: Note) {
       this.editingNote = note;
+      console.log(this.editingNote);
       this.dialogVisible = true;
     },
-    saveNote() {
-      const noteList = this.todoNotes.includes(this.editingNote) ? this.todoNotes : this.doneNotes;
-      const index = noteList.findIndex(n => n.id === this.editingNote.id);
-      if (index !== -1) {
-        const category = this.categories.find(c => c.id === this.editingNote.categoryId);
-        noteList[index] = {
-          ...this.editingNote,
-          color: category?.color || this.categories[0].color
+    async saveNote() {
+      try {
+        const updatedNote = {
+          ...this.editingNote
         };
-      }
-      this.dialogVisible = false;
-    },
-    moveToDone(note: Note) {
-      const index = this.todoNotes.findIndex(n => n.id === note.id);
-      if (index !== -1) {
-        this.todoNotes.splice(index, 1);
-        this.doneNotes.push({ ...note });
-      }
-    },
-    moveToTodo(note: Note) {
-      const index = this.doneNotes.findIndex(n => n.id === note.id);
-      if (index !== -1) {
-        this.doneNotes.splice(index, 1);
-        this.todoNotes.push({ ...note });
+        console.log(updatedNote);
+        await noteApi.updateNote(this.editingNote.id, updatedNote);
+
+        const noteList = this.todoNotes.includes(this.editingNote) ? this.todoNotes : this.doneNotes;
+        const index = noteList.findIndex(n => n.id === this.editingNote.id);
+        if (index !== -1) {
+          noteList[index] = updatedNote;
+        }
+
+        this.dialogVisible = false;
+      } catch (error) {
+        console.error('更新便签失败:', error);
       }
     },
-    deleteNote(note: Note, section: string) {
-      if (section === 'todo') {
-        this.todoNotes = this.todoNotes.filter(n => n.id !== note.id);
-      } else {
-        this.doneNotes = this.doneNotes.filter(n => n.id !== note.id);
+    async deleteNote(note: Note, section: string) {
+      try {
+        await noteApi.deleteNote(note.id);
+        if (section === 'todo') {
+          this.todoNotes = this.todoNotes.filter(n => n.id !== note.id);
+        } else {
+          this.doneNotes = this.doneNotes.filter(n => n.id !== note.id);
+        }
+      } catch (error) {
+        console.error('删除便签失败:', error);
+      }
+    },
+    async moveToDone(note: Note) {
+      try {
+        const updatedNote = await noteApi.toggleNoteStatus(note.id);
+        const index = this.todoNotes.findIndex(n => n.id === note.id);
+        if (index !== -1) {
+          this.todoNotes.splice(index, 1);
+          this.doneNotes.push(updatedNote.data);
+        }
+      } catch (error) {
+        console.error('更新便签状态失败:', error);
+      }
+    },
+    async moveToTodo(note: Note) {
+      try {
+        const updatedNote = await noteApi.toggleNoteStatus(note.id);
+        const index = this.doneNotes.findIndex(n => n.id === note.id);
+        if (index !== -1) {
+          this.doneNotes.splice(index, 1);
+          this.todoNotes.push(updatedNote.data);
+        }
+      } catch (error) {
+        console.error('更新便签状态失败:', error);
       }
     },
     handleChange(evt: any) {

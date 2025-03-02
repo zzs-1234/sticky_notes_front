@@ -38,9 +38,6 @@ export default defineComponent({
     VueDraggableNext,
     NoteItem
   },
-  updated() {
-    console.log(this.notes)
-  },
   props: {
     title: {
       type: String,
