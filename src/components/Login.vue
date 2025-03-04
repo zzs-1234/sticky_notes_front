@@ -7,11 +7,10 @@
       label-width="80px"
       @submit.prevent="handleLogin"
     >
-      <el-form-item label="邮箱" prop="email">
+      <el-form-item label="用户名" prop="username">
         <el-input 
-          v-model="form.email" 
-          placeholder="请输入邮箱"
-          type="email"
+          v-model="form.username" 
+          placeholder="请输入用户名"
           @keyup.enter="handleLogin"
         ></el-input>
       </el-form-item>
@@ -36,7 +35,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, watch } from 'vue';
-// import { userApi } from '../api'; // 假设您有一个 userApi 用于处理用户相关的 API
+import { userApi } from '../api';
 import type { FormInstance } from 'element-plus';
 import { ElMessage } from 'element-plus';
 
@@ -54,14 +53,14 @@ export default defineComponent({
     const formRef = ref<FormInstance>();
     
     const form = ref({
-      email: '',
+      username: '',
       password: ''
     });
 
     const rules = {
-      email: [
-        { required: true, message: '请输入邮箱', trigger: 'blur' },
-        { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+      username: [
+        { required: true, message: '请输入用户名', trigger: 'blur' },
+        { min: 3, message: '用户名长度不能小于3位', trigger: 'blur' }
       ],
       password: [
         { required: true, message: '请输入密码', trigger: 'blur' },
@@ -95,7 +94,9 @@ export default defineComponent({
       await formRef.value.validate(async (valid, fields) => {
         if (valid) {
           try {
-            // await userApi.login(form.value);
+            const res = await userApi.login(form.value);
+            // 存储 token
+            localStorage.setItem('token', res.data.token);
             ElMessage.success('登录成功');
             emit('login-success');
             emit('update:visible', false);

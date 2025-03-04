@@ -3,11 +3,6 @@
     <el-container>
       <el-header>
         <div class="header-content">
-          <div class="button-group">
-            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
-            <el-button type="primary" @click="showLoginDialog">登录</el-button>
-            <el-button type="success" @click="showRegisterDialog">注册</el-button>
-          </div>
           <el-date-picker
             v-model="selectedDate"
             type="date"
@@ -16,6 +11,7 @@
             value-format="YYYY-MM-DD"
             :clearable="true"
             class="date-picker"
+            @change="handleDateChange"
           />
           <el-select v-model="currentCategory" placeholder="选择分类" class="category-select">
             <el-option label="全部" :value="0" />
@@ -31,6 +27,21 @@
               </div>
             </el-option>
           </el-select>
+          <div class="button-group">
+            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+            <!-- 根据登录状态显示不同的内容 -->
+            <template v-if="isLoggedIn">
+              <div class="user-info">
+                <el-icon class="welcome-icon"><StarFilled /></el-icon>
+                <span class="welcome-text">欢迎回来</span>
+                <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
+              </div>
+            </template>
+            <template v-else>
+              <el-button type="primary" @click="showLoginDialog">登录</el-button>
+              <el-button type="success" @click="showRegisterDialog">注册</el-button>
+            </template>
+          </div>
         </div>
       </el-header>
 
@@ -142,13 +153,15 @@ import { noteApi, categoryApi } from './api';
 import type { Note, Category } from './types';
 import Login from './components/Login.vue';
 import Register from './components/Register.vue';
+import { StarFilled } from '@element-plus/icons-vue'; // 导入图标
 
 export default defineComponent({
   name: 'App',
   components: {
     Whiteboard,
     Login,
-    Register
+    Register,
+    StarFilled
   },
   data() {
     return {
@@ -166,6 +179,7 @@ export default defineComponent({
       },
       loginDialogVisible: false,
       registerDialogVisible: false,
+      isLoggedIn: false, // 添加登录状态
     };
   },
   computed: {
@@ -225,6 +239,8 @@ export default defineComponent({
       this.doneNotes = doneNotes.data;
       console.log(this.todoNotes);
       console.log(this.doneNotes);
+      // 检查是否已登录
+      this.checkLoginStatus();
     } catch (error) {
       console.error('初始化数据失败:', error);
     }
@@ -356,10 +372,26 @@ export default defineComponent({
       this.registerDialogVisible = true;
     },
     handleLoginSuccess() {
-      console.log('登录成功');
+      this.isLoggedIn = true;
+      this.loginDialogVisible = false;
+      // 刷新数据
+      this.fetchData();
     },
     handleRegisterSuccess() {
       console.log('注册成功');
+    },
+    checkLoginStatus() {
+      const token = localStorage.getItem('token');
+      this.isLoggedIn = !!token;
+    },
+    handleLogout() {
+      localStorage.removeItem('token');
+      this.isLoggedIn = false;
+      // 可以添加退出后的其他处理，比如清空数据等
+      this.$router?.push('/login');
+    },
+    fetchData() {
+      // 实现刷新数据的逻辑
     }
   }
 });
@@ -471,6 +503,45 @@ export default defineComponent({
 
   .el-main {
     padding: 10px;
+  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f9eb;
+  padding: 6px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-icon {
+  color: #67c23a;
+  font-size: 18px;
+  animation: rotate 2s linear infinite;
+}
+
+.welcome-text {
+  color: #67c23a;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 在小屏幕上调整用户信息显示 */
+@media (max-width: 768px) {
+  .user-info {
+    width: auto;
+    justify-content: center;
   }
 }
 </style> 

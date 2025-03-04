@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 
 const request = axios.create({
     baseURL: 'http://localhost:8000/api',
@@ -11,7 +12,14 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
     config => {
-        // 在这里可以添加认证信息等
+        // 从 localStorage 获取 token
+        const token = localStorage.getItem('token');
+        
+        // 如果有 token 就带上
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
         return config;
     },
     error => {
@@ -25,8 +33,18 @@ request.interceptors.response.use(
         return response;
     },
     error => {
-        // 统一错误处理
-        console.error('请求错误:', error);
+        // 处理 401 未授权错误
+        if (error.response?.status === 401) {
+            // 清除 token
+            localStorage.removeItem('token');
+            ElMessage.error('登录已过期，请重新登录');
+            // 可以在这里添加重定向到登录页的逻辑
+        }
+        
+        // 显示错误信息
+        const message = error.response?.data?.message || error.message;
+        ElMessage.error(message);
+        
         return Promise.reject(error);
     }
 );
