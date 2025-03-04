@@ -28,7 +28,10 @@
             </el-option>
           </el-select>
           <div class="button-group">
-            <el-button type="primary" @click="showAddNoteDialog">添加便签</el-button>
+            <el-button 
+              type="primary" 
+              @click="handleAddNoteClick"
+            >添加便签</el-button>
             <!-- 根据登录状态显示不同的内容 -->
             <template v-if="isLoggedIn">
               <div class="user-info">
@@ -154,6 +157,7 @@ import type { Note, Category } from './types';
 import Login from './components/Login.vue';
 import Register from './components/Register.vue';
 import { StarFilled } from '@element-plus/icons-vue'; // 导入图标
+import { ElMessage } from 'element-plus';
 
 export default defineComponent({
   name: 'App',
@@ -225,25 +229,7 @@ export default defineComponent({
     }
   },
   async created() {
-    try {
-      // 获取所有分类
-      const categories = await categoryApi.getAllCategories();
-      this.categories = categories;
-      // 获取待办和已完成便签
-      const [todoNotes, doneNotes] = await Promise.all([
-        noteApi.getTodoNotes(),
-        noteApi.getDoneNotes()
-      ]);
-      
-      this.todoNotes = todoNotes.data;
-      this.doneNotes = doneNotes.data;
-      console.log(this.todoNotes);
-      console.log(this.doneNotes);
-      // 检查是否已登录
-      this.checkLoginStatus();
-    } catch (error) {
-      console.error('初始化数据失败:', error);
-    }
+    this.fetchData();
   },
   methods: {
     getRandomColor(): string {
@@ -286,7 +272,6 @@ export default defineComponent({
     },
     editNote(note: Note) {
       this.editingNote = note;
-      console.log(this.editingNote);
       this.dialogVisible = true;
     },
     async saveNote() {
@@ -294,7 +279,6 @@ export default defineComponent({
         const updatedNote = {
           ...this.editingNote
         };
-        console.log(updatedNote);
         await noteApi.updateNote(this.editingNote.id, updatedNote);
 
         const noteList = this.todoNotes.includes(this.editingNote) ? this.todoNotes : this.doneNotes;
@@ -388,10 +372,37 @@ export default defineComponent({
       localStorage.removeItem('token');
       this.isLoggedIn = false;
       // 可以添加退出后的其他处理，比如清空数据等
-      this.$router?.push('/login');
+      this.todoNotes = [];
+      this.doneNotes = [];
     },
-    fetchData() {
-      // 实现刷新数据的逻辑
+    handleAddNoteClick() {
+      if (!this.isLoggedIn) {
+        ElMessage.warning('请先登录后再添加便签');
+        this.showLoginDialog();
+        return;
+      }
+      this.showAddNoteDialog();
+    },
+    async fetchData() {
+      this.checkLoginStatus();
+      try {
+        if (this.isLoggedIn) {
+          // 获取便签数据
+          const [todoRes, doneRes] = await Promise.all([
+            noteApi.getTodoNotes(),
+            noteApi.getDoneNotes()
+          ]);
+          this.todoNotes = todoRes.data;
+          this.doneNotes = doneRes.data;
+        } else {
+          // 清空数据
+          this.todoNotes = [];
+          this.doneNotes = [];
+        }
+      } catch (error) {
+        console.error('获取数据失败:', error);
+        ElMessage.error('获取数据失败');
+      }
     }
   }
 });

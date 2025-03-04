@@ -35,10 +35,11 @@ request.interceptors.response.use(
     error => {
         // 处理 401 未授权错误
         if (error.response?.status === 401) {
-            // 清除 token
+            // 清除 token 和用户数据
             localStorage.removeItem('token');
+            // 触发全局事件
+            window.dispatchEvent(new CustomEvent('logout'));
             ElMessage.error('登录已过期，请重新登录');
-            // 可以在这里添加重定向到登录页的逻辑
         }
         
         // 显示错误信息
