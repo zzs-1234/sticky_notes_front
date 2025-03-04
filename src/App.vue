@@ -229,6 +229,7 @@ export default defineComponent({
     }
   },
   async created() {
+    this.categories = await categoryApi.getAllCategories();
     this.fetchData();
   },
   methods: {
